@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Import and Display Session Graphs</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body {
+        font-family: "Roboto Mono", monospace;
+        background-color: #1a202c;
+        color: white;
+      }
+      .container {
+        max-width: 800px;
+        margin: 50px auto;
+        text-align: center;
+      }
+      .chart-container {
+        width: 100%;
+        height: 400px;
+        margin-top: 20px;
+      }
+      .stats {
+        text-align: left;
+        margin-top: 20px;
+      }
+      #drop-zone {
+        border: 2px dashed #4a5568;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: background-color 0.3s ease;
+      }
+      #drop-zone.dragover {
+        background-color: #2d3748;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-4xl font-bold mb-8">
+        Import Session JSON and Display Graphs
+      </h1>
+
+      <!-- Drop Zone for File Upload -->
+      <div id="drop-zone" class="mb-4">
+        Drag and drop your JSON file here or click to select
+      </div>
+      <input type="file" id="fileInput" class="hidden" accept=".json" />
+
+      <div id="fileDetails" class="text-lg mb-4"></div>
+
+      <!-- Bar Chart -->
+      <canvas id="sessionBarChart" class="chart-container"></canvas>
+
+      <!-- Pie Chart -->
+      <canvas id="completionPieChart" class="chart-container"></canvas>
+
+      <!-- Line Chart -->
+      <canvas id="timeLineChart" class="chart-container"></canvas>
+
+      <div id="stats" class="stats"></div>
+
+      <button
+        id="resetButton"
+        class="mt-4 px-6 py-3 bg-red-500 hover:bg-red-600 rounded-full text-xl font-bold"
+        style="display: none"
+      >
+        Reset
+      </button>
+    </div>
+
+    <script>
+      let barChartInstance = null;
+      let pieChartInstance = null;
+      let lineChartInstance = null;
+
+      document.addEventListener("DOMContentLoaded", function () {
+        setupDragAndDrop();
+        document
+          .getElementById("fileInput")
+          .addEventListener("change", handleFileSelect);
+
+        // Check if session data is passed via URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionDataStr = urlParams.get("sessionData");
+        if (sessionDataStr) {
+          const sessionData = JSON.parse(decodeURIComponent(sessionDataStr));
+          displayFileDetails(sessionData);
+          createBarChart(sessionData);
+          createPieChart(sessionData);
+          createLineChart(sessionData);
+          displayStats(sessionData);
+        }
+      });
+
+      function setupDragAndDrop() {
+        const dropZone = document.getElementById("drop-zone");
+
+        dropZone.addEventListener("click", () =>
+          document.getElementById("fileInput").click(),
+        );
+
+        dropZone.addEventListener("dragover", function (event) {
+          event.preventDefault();
+          dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", function (event) {
+          dropZone.classList.remove("dragover");
+        });
+
+        dropZone.addEventListener("drop", function (event) {
+          event.preventDefault();
+          dropZone.classList.remove("dragover");
+          const file = event.dataTransfer.files[0];
+          if (file && file.type === "application/json") {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+              const jsonData = JSON.parse(e.target.result);
+              displayFileDetails(jsonData);
+              createBarChart(jsonData);
+              createPieChart(jsonData);
+              createLineChart(jsonData);
+              displayStats(jsonData);
+            };
+            reader.readAsText(file);
+          } else {
+            alert("Please upload a valid JSON file.");
+          }
+        });
+      }
+
+      function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (file && file.type === "application/json") {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            const jsonData = JSON.parse(e.target.result);
+            displayFileDetails(jsonData);
+            createBarChart(jsonData);
+            createPieChart(jsonData);
+            createLineChart(jsonData);
+            displayStats(jsonData);
+          };
+          reader.readAsText(file);
+        } else {
+          alert("Please upload a valid JSON file.");
+        }
+      }
+
+      function displayFileDetails(jsonData) {
+        const details = `
+        <p><strong>Session Start:</strong> ${jsonData.startTime}</p>
+        <p><strong>Session End:</strong> ${jsonData.endTime}</p>
+        <p><strong>Total Time:</strong> ${formatTime(jsonData.totalTime)}</p>
+      `;
+        document.getElementById("fileDetails").innerHTML = details;
+        document.getElementById("resetButton").style.display = "inline-block";
+      }
+
+      function createBarChart(jsonData) {
+        const labels = jsonData.timers.map((timer) => timer.label);
+        const data = jsonData.timers.map((timer) =>
+          timer.remainingTime
+            ? timer.originalDuration - timer.remainingTime
+            : timer.originalDuration,
+        );
+        const backgroundColors = jsonData.timers.map((timer) =>
+          timer.skipTime !== null
+            ? "rgba(255, 99, 132, 0.2)"
+            : "rgba(75, 192, 192, 0.2)",
+        );
+        const borderColors = jsonData.timers.map((timer) =>
+          timer.skipTime !== null
+            ? "rgba(255, 99, 132, 1)"
+            : "rgba(75, 192, 192, 1)",
+        );
+
+        if (barChartInstance) barChartInstance.destroy();
+
+        const ctx = document.getElementById("sessionBarChart").getContext("2d");
+        barChartInstance = new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Time Spent (seconds)",
+                data,
+                backgroundColor: backgroundColors,
+                borderColor: borderColors,
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true },
+            },
+            plugins: {
+              legend: { display: false },
+            },
+          },
+        });
+      }
+
+      function createPieChart(jsonData) {
+        const totalTasks = jsonData.timers.length;
+        const completedTasks = jsonData.timers.filter(
+          (timer) => timer.skipTime === null,
+        ).length;
+        const skippedTasks = totalTasks - completedTasks;
+
+        if (pieChartInstance) pieChartInstance.destroy();
+
+        const ctx = document
+          .getElementById("completionPieChart")
+          .getContext("2d");
+        pieChartInstance = new Chart(ctx, {
+          type: "pie",
+          data: {
+            labels: ["Completed", "Skipped"],
+            datasets: [
+              {
+                data: [completedTasks, skippedTasks],
+                backgroundColor: [
+                  "rgba(75, 192, 192, 0.2)",
+                  "rgba(255, 99, 132, 0.2)",
+                ],
+                borderColor: ["rgba(75, 192, 192, 1)", "rgba(255, 99, 132, 1)"],
+                borderWidth: 1,
+              },
+            ],
+          },
+          options: {
+            plugins: {
+              legend: { display: true },
+            },
+          },
+        });
+      }
+
+      function createLineChart(jsonData) {
+        const labels = jsonData.timers.map((timer) => timer.label);
+        const data = jsonData.timers.map((timer, index) =>
+          jsonData.timers
+            .slice(0, index + 1)
+            .reduce(
+              (sum, t) =>
+                sum +
+                (t.remainingTime
+                  ? t.originalDuration - t.remainingTime
+                  : t.originalDuration),
+              0,
+            ),
+        );
+
+        if (lineChartInstance) lineChartInstance.destroy();
+
+        const ctx = document.getElementById("timeLineChart").getContext("2d");
+        lineChartInstance = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "Cumulative Time Spent (seconds)",
+                data,
+                fill: false,
+                borderColor: "rgba(75, 192, 192, 1)",
+                tension: 0.1,
+              },
+            ],
+          },
+          options: {
+            scales: {
+              y: { beginAtZero: true },
+            },
+            plugins: {
+              legend: { display: false },
+            },
+          },
+        });
+      }
+
+      function displayStats(jsonData) {
+        const totalTasks = jsonData.timers.length;
+        const completedTasks = jsonData.timers.filter(
+          (timer) => timer.skipTime === null,
+        ).length;
+        const skippedTasks = totalTasks - completedTasks;
+        const totalTimeSpent = jsonData.timers.reduce(
+          (sum, timer) =>
+            sum +
+            (timer.remainingTime
+              ? timer.originalDuration - timer.remainingTime
+              : timer.originalDuration),
+          0,
+        );
+        const averageTimePerTask = (totalTimeSpent / completedTasks).toFixed(2);
+
+        const stats = `
+        <p><strong>Total Tasks:</strong> ${totalTasks}</p>
+        <p><strong>Tasks Completed:</strong> ${completedTasks}</p>
+        <p><strong>Tasks Skipped:</strong> ${skippedTasks}</p>
+        <p><strong>Total Time Spent:</strong> ${formatTime(totalTimeSpent)}</p>
+        <p><strong>Average Time per Completed Task:</strong> ${formatTime(averageTimePerTask)}</p>
+        <p><strong>Percentage of Tasks Completed:</strong> ${((completedTasks / totalTasks) * 100).toFixed(2)}%</p>
+      `;
+        document.getElementById("stats").innerHTML = stats;
+      }
+
+      function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const remainingSeconds = seconds % 60;
+        return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+      }
+    </script>
+  </body>
+</html>
