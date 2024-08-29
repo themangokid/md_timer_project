@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timer Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto Mono', monospace;
+        }
+        .template-box {
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+            overflow: hidden; /* Ensures that expanded content doesn't push layout */
+        }
+        .template-box:hover {
+            transform: scale(1.05);
+        }
+        .template-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+            padding: 0;
+        }
+        .template-box.expanded .template-content {
+            max-height: 300px; /* Adjust based on your desired size */
+            padding: 1rem;
+            overflow-y: auto; /* Adds a vertical scrollbar if content exceeds max-height */
+        }
+        .template-content pre {
+            margin: 0;
+            white-space: pre-wrap; /* Ensures long text wraps */
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col items-center justify-center">
+
+    <h1 class="text-4xl font-bold mb-8">Timer Dashboard</h1>
+
+    <input type="file" id="fileInput" class="mb-4" />
+    
+    <div id="template-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Templates will be dynamically loaded here -->
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const fileInput = document.getElementById('fileInput');
+            
+            fileInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const markdownContent = e.target.result;
+                        localStorage.setItem('savedMarkdown', markdownContent); // Save to localStorage
+                        loadTemplates(markdownContent);
+                    };
+                    reader.readAsText(file);
+                }
+            });
+
+            // Check if there's existing markdown content in localStorage
+            const savedMarkdown = localStorage.getItem('savedMarkdown');
+            if (savedMarkdown) {
+                loadTemplates(savedMarkdown);
+            }
+        });
+
+        function loadTemplates(markdown) {
+            const container = document.getElementById('template-container');
+            container.innerHTML = ''; // Clear previous templates
+            const tasks = markdown.split('#').filter(task => task.trim() !== '');
+
+            tasks.forEach((task, index) => {
+                const lines = task.trim().split('\n');
+                const title = lines.shift().trim();
+                const templateMarkdown = lines.join('\n').trim();
+
+                const templateBox = document.createElement('div');
+                templateBox.className = 'template-box px-6 py-4 bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg text-center text-xl font-bold mb-4';
+                templateBox.innerHTML = `
+                    <div class="template-header">${title}</div>
+                    <div class="template-content">
+                        <pre class="text-left bg-gray-800 p-4 rounded">${templateMarkdown}</pre>
+                        <button class="mt-4 px-4 py-2 bg-green-500 hover:bg-green-600 rounded-full font-bold" onclick="useTemplate('${encodeURIComponent(templateMarkdown)}')">Use Template</button>
+                    </div>
+                `;
+
+                templateBox.addEventListener('click', function() {
+                    this.classList.toggle('expanded');
+                });
+
+                container.appendChild(templateBox);
+            });
+        }
+
+        function useTemplate(templateMarkdown) {
+            const decodedTemplate = decodeURIComponent(templateMarkdown);
+            localStorage.setItem('timerInput', decodedTemplate);
+            window.location.href = 'timer.html';  // Redirect to the timer page
+        }
+    </script>
+
+</body>
+</html>
+
+

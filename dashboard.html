@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark mode background */
+            color: #cbd5e0; /* Light text color */
+        }
+        .sidebar-menu {
+            background-color: #2d3748; /* Dark sidebar */
+            height: 100vh;
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+        }
+        .hamburger-menu {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            width: 30px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .hamburger-menu span {
+            display: block;
+            height: 4px;
+            background-color: #cbd5e0;
+            border-radius: 2px;
+            transition: 0.3s;
+        }
+        @media (max-width: 768px) {
+            .sidebar-menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease-in-out;
+            }
+            .sidebar-menu.active {
+                transform: translateX(0);
+            }
+            .sidebar-overlay {
+                display: block;
+            }
+        }
+        .content-container {
+            padding: 1rem;
+            padding-top: 3rem; /* Give space for fixed navbar */
+        }
+        iframe {
+            border: none;
+            width: 100%;
+            height: 80vh; /* Adjust height as needed */
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div class="fixed left-0 top-0 w-64 sidebar-menu p-4 z-50">
+        <h2 class="font-bold text-2xl text-white">Dashboard</h2>
+        <ul class="mt-4">
+            <li class="mb-1">
+                <a href="#timer-section" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-600 rounded-md">
+                    <i class="ri-timer-line mr-3"></i> 
+                    <span>Timer</span>
+                </a>
+            </li>
+            <li class="mb-1">
+                <a href="#graph-section" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-600 rounded-md">
+                    <i class="ri-bar-chart-line mr-3"></i> 
+                    <span>Graphs</span>
+                </a>
+            </li>
+            <li class="mb-1">
+                <a href="#timer-menu-section" class="flex items-center py-2 px-4 text-gray-300 hover:bg-gray-600 rounded-md">
+                    <i class="ri-information-line mr-3"></i> 
+                    <span>Timer-menu</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Sidebar Overlay (for mobile) -->
+    <div class="sidebar-overlay z-40" id="sidebar-overlay"></div>
+
+    <!-- Hamburger Menu (visible on mobile) -->
+    <div class="fixed top-4 left-4 z-50 md:hidden">
+        <div class="hamburger-menu" id="hamburger-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="md:ml-64 content-container">
+         <!-- Timer-menu Section -->
+        <section id="timer-menu-section" class="mb-8">
+            <h1 class="text-4xl font-bold mb-4">Timer-menu</h1>
+            <iframe src="timer-menu.html"></iframe>
+        </section>
+         <!-- Graph Section -->
+        <section id="graph-section" class="mb-8">
+            <h1 class="text-4xl font-bold mb-4">Graphs</h1>
+            <iframe src="graph.html"></iframe>
+        </section>
+         <!-- Fridge Section -->
+        <section id="fridge-section" class="mb-8">
+            <h1 class="text-4xl font-bold mb-4">Fridge</h1>
+            <iframe src="fridge.html"></iframe>
+        </section>
+
+
+   </main>
+
+    <!-- JavaScript to handle the sidebar toggling -->
+    <script>
+        const sidebar = document.querySelector('.sidebar-menu');
+        const overlay = document.getElementById('sidebar-overlay');
+        const hamburger = document.getElementById('hamburger-menu');
+
+        hamburger.addEventListener('click', function () {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('hidden');
+        });
+
+        overlay.addEventListener('click', function () {
+            sidebar.classList.remove('active');
+            overlay.classList.add('hidden');
+        });
+    </script>
+
+</body>
+</html>
+
